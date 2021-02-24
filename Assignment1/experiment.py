@@ -20,6 +20,7 @@ parser = ArgumentParser()
 parser.add_argument("--trainDir", type=str, default="./datasets/train", help="path to training data")
 parser.add_argument("--validDir", type=str, default="./datasets/valid",help="path to validation data")
 parser.add_argument("--outDir", type=str, default="experiments", help="directory to store trained model & classification report")
+parser.add_argument("--features", type=str, default="lri", choices=["lri", "lr", "li", "ri"], help="combination of context feature vectors for the experiment")
 parser.add_argument("--modelType", type=str, default="svm", choices=["knn", "svm", "mlp"], help="type of model to experiment")
 
 # For testing
@@ -40,7 +41,7 @@ parser.add_argument("--C", type=float, default=1, help="[SVM] regularization par
 
 
 class PSDExperiment:
-    def __init__(self, model_type, params, train_path, valid_path, output_dir, test=False):
+    def __init__(self, model_type, params, features, train_path, valid_path, output_dir, test=False):
         if not test:
             print("Initializing experiment...")
             self.train_dir = train_path
@@ -48,8 +49,9 @@ class PSDExperiment:
             
             self.model_type = model_type
             self.params = params
+            self.features = features
 
-            self.model_identifier = model_type
+            self.model_identifier = f"{features}_{model_type}"
             for key, value in params.items():
                 self.model_identifier += f"_{key}={value}"
 
@@ -81,10 +83,26 @@ class PSDExperiment:
         X_vr = np.stack(df["vr"].values, axis=0)
         X_vi = np.stack(df["vi"].values, axis=0)
 
-        if self.model_type == "knn":
-            return X_vl + self.params["beta"]*X_vr + self.params["gamma"]*X_vi
-        else:
-            return np.concatenate((X_vl, X_vr, X_vi), axis=1)
+        if self.features == "lri":
+            if self.model_type == "knn":
+                return X_vl + self.params["beta"]*X_vr + self.params["gamma"]*X_vi
+            else:
+                return np.concatenate((X_vl, X_vr, X_vi), axis=1)
+        elif self.features == "lr":
+            if self.model_type == "knn":
+                return X_vl + self.params["beta"]*X_vr
+            else:
+                return np.concatenate((X_vl, X_vr), axis=1)
+        elif self.features == "li":
+            if self.model_type == "knn":
+                return X_vl + self.params["gamma"]*X_vi
+            else:
+                return np.concatenate((X_vl, X_vi), axis=1)
+        elif self.features == "ri":
+            if self.model_type == "knn":
+                return self.params["beta"]*X_vr + self.params["gamma"]*X_vi
+            else:
+                return np.concatenate((X_vr, X_vi), axis=1)
 
 
     def trainModels(self):
