@@ -1,5 +1,6 @@
 # Assignment 1: Preposition Sense Disambiguation
 
+## Problem Statement
 In this first assignment we'll tackle the problem of preposition sense disambiguation. You have to follow the approach as described in [this paper](https://www.aclweb.org/anthology/D18-1180.pdf)
 
 While you are encouraged to read the whole paper, section 4 is what you have to follow most closely. Note that you don't have to tackle the preposition sense representation task which is discussed in section 5 of the paper. There are four approaches discussed in the paper - 
@@ -19,7 +20,7 @@ You have to implement a minimum of two approaches to be eligible for full credit
 - The outputs to the test data (format to be told shortly)
 
 
-## Data format description: 
+### Data format description: 
 
 Each preposition has its own XML file (e.g., underneath.xml), included in the 'Source' directory under the train/test folders. Each file contains a number of instances (only one is shown in the example below). The sentences in each corpus follow the lexical sample format, as given in the following example:
 
@@ -45,3 +46,22 @@ The first line identifies the lexical item and its part of speech (always "prep"
 
 
 > _**NOTE:** We'd be running plagiarism checkers on your submitted codes, so avoid any form of inter-group interaction at all costs. Also, the problem description might have some tweaks over time._
+
+## Code & Usage
+
+### Creating the Datasets from Raw Data
+
+Use the `create_datasets.py` script to create datasets containing the context feature vectors from the raw XML files as follows:
+
+```console
+# Create the training & validation datasets
+$ python create_datasets.py --dataDir ./data/Train/Source --outDir ./datasets --kl 2 --kr 2
+
+# Create the test datasets
+$ python create_datasets.py --dataDir ./data/Test/Source --outDir ./datasets --test --kl 2 --kr 2
+```
+
+> _**Note:** Although the number of left & right context words can be tuned using the `--kl` & `--kr` arguments, for this assignment we use `kl = kr = 2` to create the datasets (as suggested in the paper)
+
+### Experimenting with Models
+
