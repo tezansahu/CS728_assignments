@@ -34,7 +34,7 @@ parser.add_argument("--beta", type=float, default=1, help="[k-NN] relative weigh
 parser.add_argument("--gamma", type=float, default=1, help="[k-NN] relative weight of interplay context vector")
 
 # Tunable params for MLP
-parser.add_argument("--numNeurons", type=int, default=500, help="[MLP] no. of neurons in hidden layer")
+parser.add_argument("--numNeurons", type=int, default=100, help="[MLP] no. of neurons in hidden layer")
 
 # Tunable params for SVM
 parser.add_argument("--C", type=float, default=1, help="[SVM] regularization parameter")
@@ -69,7 +69,7 @@ class PSDExperiment:
             return KNeighborsClassifier(n_neighbors=self.params["k"])
         
         elif self.model_type == "mlp":
-            return MLPClassifier(hidden_layer_sizes=(self.params["num_neurons"],), random_state=1, max_iter=500)
+            return MLPClassifier(hidden_layer_sizes=(self.params["num_neurons"],), random_state=1, max_iter=200)
 
         elif self.model_type == "svm":
             return SVC(kernel="linear", C=self.params["C"])
@@ -204,7 +204,7 @@ def main():
         print("Invalid model! Exitting...")
         exit(1)
     
-    expt = PSDExperiment(args.modelType, params, args.trainDir, args.validDir, args.outDir, args.test)
+    expt = PSDExperiment(args.modelType, params, args.features, args.trainDir, args.validDir, args.outDir, args.test)
     if args.test:
         expt.testModels(args.testDir, args.modelsDir)
     else:
