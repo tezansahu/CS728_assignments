@@ -55,6 +55,8 @@ The first line identifies the lexical item and its part of speech (always "prep"
 
 Use the `create_datasets.py` script to create datasets containing the context feature vectors from the raw XML files as follows:
 
+> **Note:** Before actually running the script, you need to download the pre-trained Word2Vec model (trained on Google News) from [here](https://s3.amazonaws.com/dl4j-distribution/GoogleNews-vectors-negative300.bin.gz), unzip it & store it in the this folder.
+
 ```bash
 # Create the training & validation datasets
 $ python create_datasets.py --dataDir ./data/Train/Source --outDir ./datasets --kl 2 --kr 2
