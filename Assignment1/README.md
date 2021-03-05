@@ -53,7 +53,7 @@ The first line identifies the lexical item and its part of speech (always "prep"
 
 Use the `create_datasets.py` script to create datasets containing the context feature vectors from the raw XML files as follows:
 
-```console
+```bash
 # Create the training & validation datasets
 $ python create_datasets.py --dataDir ./data/Train/Source --outDir ./datasets --kl 2 --kr 2
 
@@ -61,7 +61,32 @@ $ python create_datasets.py --dataDir ./data/Train/Source --outDir ./datasets --
 $ python create_datasets.py --dataDir ./test_out --outDir ./datasets --test --kl 2 --kr 2
 ```
 
-> _**Note:** Although the number of left & right context words can be tuned using the `--kl` & `--kr` arguments, for this assignment we use `kl = kr = 2` to create the datasets (as suggested in the paper)
+> **Note:** Although the number of left & right context words can be tuned using the `--kl` & `--kr` arguments, for this assignment we use `kl = kr = 2` to create the datasets (as suggested in the paper)
 
 ### Experimenting with Models
 
+The following approaches have been implemented for the PSD task:
+
+- Weighted k-NN *(tunable hyperparameters: k, beta, gamma)*
+- MLP *(tunable hyperparameters: # neurons in hidden layer)*
+- SVM *(tunable hyperparameters: C)*
+
+Use the `experiment.py` script to tune the hyperparameters & conduct an ablation analysis for these approaches. Some ways to use the script are shown below:
+
+```bash
+# For k-NN
+$ python experiment.py --trainDir ./datasets/train --validDir ./datasets/valid --outDir experiments--modelType knn --beta 0.1 --gamma 0.1 --k 5
+
+# For MLP
+$ python experiment.py --trainDir ./datasets/train --validDir ./datasets/valid --outDir experiments--modelType mlp --numNeurons 50
+
+# For SVM
+$ python experiment.py --trainDir ./datasets/train --validDir ./datasets/valid --outDir experiments--modelType svm --C 0.5
+
+# Testing any of the models on the test dataset
+$ python experiment.py --test --testDir ./datasets/test --testOutDir ./test_out --modelsDir ./experiments/models/lri_svm_C=0.5 --modelType svm --C 0.5
+```
+
+For ablation analysis, we can use the `--features` argument, which can take values `lri` (default), `lr`, `li` & `ri`, indicating the context feature vectors to be used in the model training.
+
+> **Note:** The classification reports of all the models trained during our experiments & analysis can be found in `./experiments/reports/`
