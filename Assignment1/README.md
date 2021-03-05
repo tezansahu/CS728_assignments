@@ -58,7 +58,7 @@ Use the `create_datasets.py` script to create datasets containing the context fe
 $ python create_datasets.py --dataDir ./data/Train/Source --outDir ./datasets --kl 2 --kr 2
 
 # Create the test datasets
-$ python create_datasets.py --dataDir ./data/Test/Source --outDir ./datasets --test --kl 2 --kr 2
+$ python create_datasets.py --dataDir ./test_out --outDir ./datasets --test --kl 2 --kr 2
 ```
 
 > _**Note:** Although the number of left & right context words can be tuned using the `--kl` & `--kr` arguments, for this assignment we use `kl = kr = 2` to create the datasets (as suggested in the paper)

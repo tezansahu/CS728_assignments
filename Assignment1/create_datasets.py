@@ -46,20 +46,22 @@ class PSDDatasetGenerator:
         for word in left_context:
             try:
                 vl_i = self.model[word]
+            except Exception:
+                vl_i = np.random.rand(300)
+            finally:
                 vl += vl_i
                 n_vl += 1
                 V.append(vl_i)
-            except Exception:
-                pass
         
         for word in right_context:
             try:
                 vr_i = self.model[word]
+            except Exception:
+                vr_i = np.random.rand(300)
+            finally:
                 vr += vr_i
                 n_vr += 1
                 V.append(vr_i)
-            except Exception:
-                pass
 
         try:
             vl /= n_vl
@@ -73,10 +75,49 @@ class PSDDatasetGenerator:
 
             return (vl, vr, vi)
         except Exception:
-            return (None, None, None)
+            return (np.random.rand(300), np.random.rand(300), np.random.rand(300))
 
-    
-    def createDataset(self, output_dir, k_l=2, k_r=2, is_test=False):
+    def createTestDataset(self, output_dir, k_l=2, k_r=2):
+        """Create the test datasets containing feature vectors from samples
+
+        Parameters
+        ----------
+        output_dir: Directory to save the test datasets created
+        k_l: Number of context words for left context of focus word
+        k_r: Number of context words for right context of focus word
+        """
+        for prep_file in os.listdir(self.data_dir):
+            preposition = re.findall(r"([a-z]*)\.out", prep_file)[0]
+            print("Preposition:\t", preposition)
+
+            ctxts_l = []
+            ctxts_r = []
+
+            with open(os.path.join(self.data_dir, prep_file), "r") as f:
+                lines = f.readlines()
+
+                for sent in lines:
+                    words = sent.lower().split()
+                    focus_word_index = words.index(preposition)
+
+                    ctxts_l.append(words[:focus_word_index][-k_l:])
+                    ctxts_r.append(words[focus_word_index+1:][: k_r])
+
+            print("Preparing context feature vectors...")
+            df = pd.DataFrame({"left_context": ctxts_l, "right_context": ctxts_r})
+            df["vl"], df["vr"], df["vi"] = zip(*df.apply(lambda s: self.__context_feature_vector(s["left_context"], s["right_context"]), axis=1))
+
+            print("%d Testing Instances" % (len(df)))
+
+            print("Saving dataset...")
+            test_dir = os.path.join(output_dir, "test")
+            if not os.path.exists(test_dir):
+                os.makedirs(test_dir)
+            df.to_pickle(os.path.join(test_dir, preposition + ".pkl"))
+            print("====================================================================")
+
+
+    def createDataset(self, output_dir, k_l=2, k_r=2):
         """Create the required datasets containing feature vectors from samples
 
         Parameters
@@ -84,9 +125,7 @@ class PSDDatasetGenerator:
         output_dir: Directory to save the training & validation datasets created
         k_l: Number of context words for left context of focus word
         k_r: Number of context words for right context of focus word
-        is_test: Boolean to indicate if the data is for creating a test dataset
         """
-
         print("Parsing XML files...")
         for prep_file in os.listdir(self.data_dir):
             preposition = re.findall(r"pp-([a-z]*)\.", prep_file)[0]
@@ -103,9 +142,8 @@ class PSDDatasetGenerator:
             for item in root.findall('./instance'):
                 try:
                     instance_id = item.attrib["id"]
-                    if not is_test:
-                        sense = self.tpp_mappings[instance_id]
-                        prep_senses.append(sense)
+                    sense = self.tpp_mappings[instance_id]
+                    prep_senses.append(sense)
                     instances.append(instance_id)
 
                     sent = item.find("./context")
@@ -115,39 +153,33 @@ class PSDDatasetGenerator:
                     pass
         
             print("Preparing context feature vectors...")
-            if not is_test:
-                df = pd.DataFrame({"id": instances, "left_context": ctxts_l, "right_context":ctxts_r, "preposition_sense": prep_senses})
-            else:
-                df = pd.DataFrame({"id": instances, "left_context": ctxts_l, "right_context":ctxts_r})
+            df = pd.DataFrame({"id": instances, "left_context": ctxts_l, "right_context":ctxts_r, "preposition_sense": prep_senses})
         
             df["vl"], df["vr"], df["vi"] = zip(*df.apply(lambda s: self.__context_feature_vector(s["left_context"], s["right_context"]), axis=1))
             df = df.dropna().reset_index(drop=True)
 
             print("Saving dataset...")
-            if not is_test:
-                train_dir = os.path.join(output_dir, "train")
-                valid_dir = os.path.join(output_dir, "valid")
-                if not os.path.exists(train_dir):
-                    os.makedirs(train_dir)
-                if not os.path.exists(valid_dir):
-                    os.makedirs(valid_dir)
-                train_df, valid_df = train_test_split(df, test_size=0.2)
-                print("%d Training Instances\t %d Validation Instances" % (len(train_df), len(valid_df)))
-                
-                train_df.to_pickle(os.path.join(train_dir, preposition + ".pkl"))
-                valid_df.to_pickle(os.path.join(valid_dir, preposition + ".pkl"))
-            else:
-                print("%d Testing Instances" % (len(df)))
-                test_dir = os.path.join(output_dir, "test")
-                if not os.path.exists(test_dir):
-                    os.makedirs(test_dir)
-                df.to_pickle(os.path.join(test_dir, preposition + ".pkl"))
+            train_dir = os.path.join(output_dir, "train")
+            valid_dir = os.path.join(output_dir, "valid")
+            if not os.path.exists(train_dir):
+                os.makedirs(train_dir)
+            if not os.path.exists(valid_dir):
+                os.makedirs(valid_dir)
+            train_df, valid_df = train_test_split(df, test_size=0.2)
+            print("%d Training Instances\t %d Validation Instances" % (len(train_df), len(valid_df)))
+            
+            train_df.to_pickle(os.path.join(train_dir, preposition + ".pkl"))
+            valid_df.to_pickle(os.path.join(valid_dir, preposition + ".pkl"))
+            
             print("====================================================================")
 
 def main():
     args = parser.parse_args()
     data_generator = PSDDatasetGenerator(args.dataDir)
-    data_generator.createDataset(args.outDir, k_l=args.kl, k_r=args.kr, is_test=args.test)
+    if args.test:
+        data_generator.createTestDataset(args.outDir, k_l=args.kl, k_r=args.kr)
+    else:
+        data_generator.createDataset(args.outDir, k_l=args.kl, k_r=args.kr)
 
 if __name__ == "__main__":
     main()

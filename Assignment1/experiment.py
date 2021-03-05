@@ -6,6 +6,7 @@ import os
 import re
 import numpy as np
 import pandas as pd
+import json
 import pickle
 from argparse import ArgumentParser
 from sklearn.neighbors import KNeighborsClassifier
@@ -26,6 +27,7 @@ parser.add_argument("--modelType", type=str, default="svm", choices=["knn", "svm
 # For testing
 parser.add_argument('--test', action='store_true', help="indicator for test data")
 parser.add_argument("--testDir", type=str, default="./datasets/test", help="path to test data")
+parser.add_argument("--testOutDir", type=str, default="./test_out", help="path to output files for storing test predictions")
 parser.add_argument("--modelsDir", type=str, help="path to trained models")
 
 # Tunable params for weighted k-NN
@@ -42,14 +44,13 @@ parser.add_argument("--C", type=float, default=1, help="[SVM] regularization par
 
 class PSDExperiment:
     def __init__(self, model_type, params, features, train_path, valid_path, output_dir, test=False):
+        self.features = features
+        self.model_type = model_type
+        self.params = params
         if not test:
             print("Initializing experiment...")
             self.train_dir = train_path
             self.valid_dir = valid_path
-            
-            self.model_type = model_type
-            self.params = params
-            self.features = features
 
             self.model_identifier = f"{features}_{model_type}"
             for key, value in params.items():
@@ -63,6 +64,9 @@ class PSDExperiment:
                     os.makedirs(folder)
 
             self.prepositions_with_one_sense = {}
+        else:
+            with open("sense_mapping.json", "r") as f:
+                self.sense_mappings = json.load(f)
 
     def __initializeModel(self):
         if self.model_type == "knn":
@@ -156,29 +160,30 @@ class PSDExperiment:
         print("Overall Validation Accuracy: %.4f" % accuracy_score(y_actual_all, y_pred_all))
         print("==================================================================")
 
-    def testModels(self, test_dir, models_dir):
+    def testModels(self, test_dir, test_out_dir, models_dir):
         print("Testing models...")
-        ids_all = pd.Series([], dtype=str)
-        y_pred_all = np.array([])
         
         for prep_test_data in os.listdir(test_dir):
             preposition = re.findall(r"([a-z]*)\.pkl", prep_test_data)[0]
             print("Predicting for: %s ..." % preposition)
 
             test_df = pd.read_pickle(os.path.join(test_dir, prep_test_data))
-            if preposition in self.prepositions_with_one_sense.keys():
-                y_pred = pd.Series([self.prepositions_with_one_sense[preposition]]*len(test_df))
+            if not os.path.exists(os.path.join(models_dir, preposition + ".sav")):
+                target_vals = set(self.sense_mappings[preposition].values())
+                assert len(target_vals) == 1
+                y_pred = pd.Series([list(target_vals)[0]]*len(test_df))
             else:
                 X = self.__getFeatures(test_df)
-
                 model = pickle.load(open(os.path.join(models_dir, preposition + ".sav"), 'rb'))
                 y_pred = model.predict(X)
 
-            y_pred_all = np.append(y_pred_all, y_pred)
-            ids_all = ids_all.append(test_df["id"])
-        
-        df = pd.DataFrame({"id": ids_all, "prep_sense": y_pred_all})
-        df.to_csv("output.csv")
+            with open(os.path.join(test_out_dir, f"{preposition}.out"), "r") as out_file:
+                lines = out_file.readlines()
+                assert len(lines) == len(y_pred)
+                new_lines = [x.replace("\n", "") + " | " + y_pred[i] + "\n" for i,x in enumerate(lines)]
+
+            with open(os.path.join(test_out_dir, f"{preposition}.out"), "w") as out_file:
+                out_file.writelines(new_lines)
         print("==================================================================")
 
 def main():
@@ -206,7 +211,7 @@ def main():
     
     expt = PSDExperiment(args.modelType, params, args.features, args.trainDir, args.validDir, args.outDir, args.test)
     if args.test:
-        expt.testModels(args.testDir, args.modelsDir)
+        expt.testModels(args.testDir, args.testOutDir, args.modelsDir)
     else:
         expt.trainModels()
         expt.validateModels()
