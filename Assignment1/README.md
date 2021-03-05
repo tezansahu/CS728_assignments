@@ -47,6 +47,8 @@ The first line identifies the lexical item and its part of speech (always "prep"
 
 > _**NOTE:** We'd be running plagiarism checkers on your submitted codes, so avoid any form of inter-group interaction at all costs. Also, the problem description might have some tweaks over time._
 
+## [Detailed Report on Implementation](https://github.com/tezansahu/CS728_assignments/blob/main/Assignment1/170100035_A1_Report.pdf)
+
 ## Code & Usage
 
 ### Creating the Datasets from Raw Data
