@@ -6,3 +6,4 @@ This repository contains my solutions to Programming Assignments for CS728 [Orga
 
 - [Assignment 1: Preposition Sense Disambiguation](./Assignment1/README.md)
 - [Assignment 2: Noun Compound Classification](./Assignment2/README.md)
+- [Assignment 3: Query Answer Type Classification using BERT & Entity Linking](./Assignment3/README.md)
